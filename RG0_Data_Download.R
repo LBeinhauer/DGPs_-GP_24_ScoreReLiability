@@ -209,6 +209,16 @@ unzip(here("Data/Downloaded Data/Meta-Analysis_2018-07-09.zip"),
       exdir = here("Data/Original Data/RRR10"),
       junkpaths = T)
 
+
+
+### PSCACR002
+
+# use osfr-package to download PSACR002-data, on IPD-level, pre-cleaned
+osfr::osf_retrieve_file("https://osf.io/rwksu") %>%
+  osfr::osf_download(path = here("Data/Original Data/PSACR002"))
+
+
+
 # Now, all data should be downloaded and moved to the corresponding "Original Data" directory
 # As the data standards differ across projects, in E1_Data_Extraction.R, relevant data will
 #  be taken from the respective files and made ready for analysis.

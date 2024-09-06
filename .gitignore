@@ -1,9 +1,8 @@
-
-Data/*
 *.DS_Store
 *.Rhistory
 old/
 .Rproj.user
+Data/*
 !Data/Downloaded Data/.gitkeep
 !Data/Extracted (Project) Data/.gitkeep
 !Data/Original Data/.gitkeep

@@ -1,0 +1,23 @@
+#### PSACR002 Positive Emotion State
+
+# load initial data-file
+# "wide, exclusions" - should be the correct, cleaned data-file
+psacr002_dat <- read.csv(here("Data/Original Data/PSACR002/data_wide_exclusion_12.23.2020.csv"))
+
+pos_state_items <- names(psacr002_dat)[grep("C2_positiveemotion_state.*[^0-9]$", names(psacr002_dat))]
+
+# identify which countries contain sufficient (more than 20) respondents
+samples <- as.data.frame(table(psacr002_dat$country))$Var1[as.data.frame(table(psacr002_dat$country))$Freq >= 200]
+
+#### STATE EMOTIONS
+
+# formulate data-file containing responses on positive state items, information on the grouping
+#  variable, and the respondent's country
+psacr002_pos_state <- psacr002_dat %>% 
+  # The original authors used more than 2 groups. Here we collapse across several groups
+  mutate(group = ifelse(condition %in% c("Active Control", "Passive Control"), yes = 0, no = 1)) %>% 
+  mutate(source = country) %>% 
+  select(c(all_of(pos_state_items), "group", "source")) %>% 
+  filter(source %in% samples)
+
+write.csv(psacr002_pos_state, file = here("Data/Extracted (Project) Data/PSACR002_pos_state.csv"))
