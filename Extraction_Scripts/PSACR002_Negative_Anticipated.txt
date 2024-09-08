@@ -18,7 +18,7 @@ psacr002_neg_antc <- psacr002_dat %>%
   # The original authors used more than 2 groups. Here we collapse across several groups
   mutate(group = ifelse(condition %in% c("Active Control", "Passive Control"), yes = 0, no = 1)) %>% 
   mutate(source = country) %>% 
-  select(c(all_of(neg_antc_items), "group", "source")) %>% 
+  dplyr::select(c(all_of(neg_antc_items), "group", "source")) %>% 
   filter(source %in% samples)
 
-write.csv(psacr002_neg_antc, file = here("Data/Extracted (Project) Data/PSACR002_neg_antc.csv"))
+write.csv(psacr002_neg_antc, file = here("Data/Extracted (Project) Data/PSACR002_neg_antc.csv"), row.names = FALSE)

@@ -19,7 +19,7 @@ psacr002_pos <- psacr002_dat %>%
   # The original authors used more than 2 groups. Here we collapse across several groups
   mutate(group = ifelse(condition %in% c("Active Control", "Passive Control"), yes = 0, no = 1)) %>% 
   mutate(source = country) %>% 
-  select(c(all_of(pos_items), "group", "source")) %>% 
+  dplyr::select(c(all_of(pos_items), "group", "source")) %>% 
   filter(source %in% samples) 
 
-write.csv(psacr002_pos, file = here("Data/Extracted (Project) Data/PSACR002_pos_photo.csv"))
+write.csv(psacr002_pos, file = here("Data/Extracted (Project) Data/PSACR002_pos_photo.csv"), row.names = FALSE)

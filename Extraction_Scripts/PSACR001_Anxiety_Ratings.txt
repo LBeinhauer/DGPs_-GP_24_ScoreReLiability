@@ -1,0 +1,19 @@
+#### PSACR001 Anxiety Ratings
+
+# "data_clean.csv" should be the correct file
+psacr001 <- read.csv(here("Data/Original Data/PSACR001/psacr001_data_clean.csv"))
+
+# check wether sample contains sufficient observations
+samples <- sort(unique(psacr001$country))[table(psacr001$country) > 50]
+
+# select the relevant items for this scale
+anxiety_items <- names(psacr001)[grep("anxiety_it", names(psacr001))]
+
+# get correct variables required for analysis
+psacr001_anxiety <- psacr001 %>% 
+  mutate(group = ifelse(frame == "loss", 1, 0),
+         source = country) %>% 
+  dplyr::select(all_of(c(anxiety_items, "group", "source")))%>% 
+  filter(source %in% samples)
+
+write.csv(psacr001_anxiety, here("Data/Extracted (Project) Data/PSACR001_anxiety_int.csv"), row.names = FALSE)

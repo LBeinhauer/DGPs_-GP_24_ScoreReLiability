@@ -264,7 +264,7 @@ d_rma_df <- do.call(rbind, d_rma_L) %>%
 d_rma_df2 <- data.frame(corr = as.factor(c(rep(0, sum(!is.na(d_rma_df$mu_d_raw))), 
                                  rep(1, sum(!is.na(d_rma_df$mu_d_raw))))),
                         tau = c(d_rma_df$tau_d_raw[!is.na(d_rma_df$mu_d_raw)], d_rma_df$tau_d_corr[!is.na(d_rma_df$mu_d_raw)]),
-                        mu = c(d_rma_df$mu_d_raw[!is.na(d_rma_df$mu_d_raw)], d_rma_df$mu_d_corr[!is.na(d_rma_df$mu_d_raw)]),
+                        mu = abs(c(d_rma_df$mu_d_raw[!is.na(d_rma_df$mu_d_raw)], d_rma_df$mu_d_corr[!is.na(d_rma_df$mu_d_raw)])),
                         sig = as.factor(c(d_rma_df$p_raw[!is.na(d_rma_df$mu_d_raw)], d_rma_df$p_corr[!is.na(d_rma_df$mu_d_raw)]) < .05))
 
 ggplot(d_rma_df2) +
@@ -279,7 +279,9 @@ ggplot(d_rma_df2) +
   geom_point(aes(x = corr, y = tau, shape = sig), position = position_jitter(width = .1))
 
 d_rma_df3 <- d_rma_df %>% 
-  filter(d_rma_df$p_raw <= .05 | d_rma_df$p_corr <= .05) 
+  filter(d_rma_df$p_raw <= .05 | d_rma_df$p_corr <= .05) %>% 
+  mutate(mu_d_raw = abs(mu_d_raw),
+         mu_d_corr = abs(mu_d_corr))
 
 d_rma_df3_l <- data.frame(sig = c(d_rma_df3$p_raw <= .05, d_rma_df3$p_corr <= .05),
                           mu_d = c(d_rma_df3$mu_d_raw, d_rma_df3$mu_d_corr),
@@ -302,5 +304,13 @@ ggplot(data = d_rma_df3_l, aes(x = corr, y = tau_d)) +
   geom_point(aes(colour = as.factor(MASC), shape = sig)) +
   geom_line(aes(colour = as.factor(MASC)))
 
+
+d_rma_df_fin_l <- d_rma_df3_l %>% 
+  filter(MASC %in% c("Nosek_Explicit_Art", "PSACR002_neg_photo", "PSACR001_anxiety_int", "PSACR001_behav_int"))
+
+
+ggplot(data = d_rma_df_fin_l, aes(x = corr, y = tau_d)) +
+  geom_point(aes(colour = as.factor(MASC))) +
+  geom_line(aes(colour = as.factor(MASC)))
 
 

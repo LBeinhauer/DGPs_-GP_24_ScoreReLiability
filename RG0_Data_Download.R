@@ -210,6 +210,12 @@ unzip(here("Data/Downloaded Data/Meta-Analysis_2018-07-09.zip"),
       junkpaths = T)
 
 
+### PSCACR001
+
+# use osfr-package to download PSACR002-data, on IPD-level, pre-cleaned
+osfr::osf_retrieve_file("https://osf.io/jecmr") %>%
+  osfr::osf_download(path = here("Data/Original Data/PSACR001"))
+
 
 ### PSCACR002
 
