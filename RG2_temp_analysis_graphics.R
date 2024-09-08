@@ -314,3 +314,121 @@ ggplot(data = d_rma_df_fin_l, aes(x = corr, y = tau_d)) +
   geom_line(aes(colour = as.factor(MASC)))
 
 
+
+
+dich_index <- sapply(agg_L, FUN = function(x){!is.na(x$n0[1])})
+MASC_names[dich_index]
+
+effect_index <- MASC_names %in% c("Albarracin_Priming_SAT", "Alter_Analytic_Processing",
+                                  "Carter_Flag_Priming", "Caruso_Currency_Priming",
+                                  "Dijksterhuis_trivia", "Finkel_Exit_Forgiveness", 
+                                  "Finkel_Neglect_Forgiveness",
+                                  "Giessner_Vertical_Position", "Hart_Criminal_Intentionality",    
+                                  "Hart_Detailed_Processing", 
+                                  # "Hart_Intention_Attribution",       
+                                  "Husnu_Imagined_Contact", "Nosek_Explicit_Art",
+                                  "Nosek_Explicit_Math", "PSACR001_anxiety_int", 
+                                  "PSACR002_neg_photo", "Shnabel_Willingness_Reconcile_Rev",
+                                  "Shnabel_Willingness_Reconcile_RPP", "Srull_Behaviour_Hostility",
+                                  "Srull_Ronald_Hostility", "Tversky_Directionality_Similarity1"
+                                  #, "Zhong_Desirability_Cleaning"
+                                  )
+
+
+d_rma_full_L <- lapply(agg_L[effect_index], FUN = function(x){
+  
+  d_rma_raw <- metafor::rma(yi = x$d_raw,
+                            sei = x$SE_d,
+                            measure = "GEN",
+                            method = "REML")
+  
+  d_rma_corr <- metafor::rma(yi = x$d_cor,
+                             sei = x$SE_d_corr,
+                             measure = "GEN",
+                             method = "REML")
+  
+  return(list(rma_raw = d_rma_raw,
+              rma_corr = d_rma_corr))
+})
+
+
+names(d_rma_full_L) <- MASC_names[effect_index]
+
+
+ggplot() +
+  geom_histogram(aes(x = y$rma_raw$yi), binwidth = .1, fill = "darkgrey") +
+  geom_histogram(aes(x = y$rma_corr$yi), binwidth = .1, fill = "black") +
+  geom_line(aes(x = seq(from = min(y$rma_raw$yi), to = max(y$rma_raw$yi), length.out = 100),
+                y = dnorm(seq(from = min(y$rma_raw$yi), to = max(y$rma_raw$yi), length.out = 100),
+                          mean = y$rma_raw$b[1], sd = sqrt(y$rma_raw$tau2))),
+            linewidth = 2, colour = "red") +
+  geom_line(aes(x = seq(from = min(y$rma_corr$yi), to = max(y$rma_corr$yi), length.out = 100),
+                y = dnorm(seq(from = min(y$rma_corr$yi), to = max(y$rma_corr$yi), length.out = 100),
+                          mean = y$rma_corr$b[1], sd = sqrt(y$rma_corr$tau2))),
+            linewidth = 2, colour = "green")
+
+
+
+plots <- lapply(1:length(d_rma_full_L), FUN = function(idx){
+  
+  name <- MASC_names[effect_index][idx]
+  
+  y <- d_rma_full_L[[idx]]
+  
+  minmaxsequence_raw <- seq(from = min(y$rma_raw$yi), to = max(y$rma_raw$yi), length.out = 100)
+  minmaxsequence_corr <- seq(from = min(y$rma_corr$yi), to = max(y$rma_corr$yi), length.out = 100)
+  
+  
+  ggplot() +
+    geom_histogram(aes(x = y$rma_raw$yi), binwidth = (2*IQR(y$rma_raw$yi))/(length(y$rma_raw$yi)^(1/3)), fill = "darkgrey") +
+    # geom_histogram(aes(x = y$rma_corr$yi), binwidth = .1, fill = "black") +
+    geom_line(aes(x = minmaxsequence_raw,
+                  y = dnorm(minmaxsequence_raw, mean = y$rma_raw$b[1], sd = sqrt(y$rma_raw$tau2))),
+              linewidth = 1, colour = "red") +
+    # geom_line(aes(x = minmaxsequence_corr,
+    #               y = dnorm(minmaxsequence_corr, mean = y$rma_corr$b[1], sd = sqrt(y$rma_corr$tau2))),
+    #           linewidth = 2, colour = "green") +
+    theme(axis.title = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.text.y = element_blank()) +
+    labs(subtitle = name)
+  
+  
+  
+})
+
+combined_plot <- Reduce('+', plots) + plot_layout(ncol = 4)
+combined_plot
+
+
+
+plots2 <- lapply(1:length(d_rma_full_L), FUN = function(idx){
+  
+  name <- MASC_names[effect_index][idx]
+  
+  y <- d_rma_full_L[[idx]]
+  
+  minmaxsequence_raw <- seq(from = min(y$rma_raw$yi), to = max(y$rma_raw$yi), length.out = 100)
+  minmaxsequence_corr <- seq(from = min(y$rma_corr$yi), to = max(y$rma_corr$yi), length.out = 100)
+  
+  
+  ggplot() +
+    geom_histogram(aes(x = y$rma_raw$yi), binwidth = (2*IQR(y$rma_raw$yi))/(length(y$rma_raw$yi)^(1/3)), fill = "darkgrey") +
+    geom_histogram(aes(x = y$rma_corr$yi), binwidth = (2*IQR(y$rma_raw$yi))/(length(y$rma_raw$yi)^(1/3)), fill = "black") +
+    geom_line(aes(x = minmaxsequence_raw,
+                  y = dnorm(minmaxsequence_raw, mean = y$rma_raw$b[1], sd = sqrt(y$rma_raw$tau2))),
+              linewidth = 1, colour = "red") +
+    geom_line(aes(x = minmaxsequence_corr,
+                  y = dnorm(minmaxsequence_corr, mean = y$rma_corr$b[1], sd = sqrt(y$rma_corr$tau2))),
+              linewidth = 1, colour = "green") +
+    theme(axis.title = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.text.y = element_blank()) +
+    labs(subtitle = name)
+  
+  
+  
+})
+
+combined_plot2 <- Reduce('+', plots2) + plot_layout(ncol = 4)
+combined_plot2
