@@ -1,5 +1,5 @@
 
-packages <- c("magrittr", "dplyr", "here", "metafor")
+packages <- c("magrittr", "dplyr", "here", "metafor", "patchwork")
 
 # check, whether library already installed or not - install and load as needed:
 apply(as.matrix(packages), MARGIN = 1, FUN = function(x) {
@@ -207,12 +207,34 @@ B_alpha_rma_df <- do.call(rbind, B_alpha_rma) %>%
 
 library(ggplot2)
 
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+gg_color_hue(3)
 
 ggplot(B_alpha_rma_df) +
-  geom_violin(aes(x = 1, y = sqrt(tau2_alpha))) +
-  geom_boxplot(aes(x = 1, y = sqrt(tau2_alpha))) +
-  geom_point(aes(x = 1, y = sqrt(tau2_alpha)), position = position_jitter(width = .1))
+  geom_violin(aes(x = 1, y = sqrt(tau2_alpha)), fill = "#00BA38", colour = "#00BA38", alpha = .3) +
+  geom_boxplot(aes(x = 1, y = sqrt(tau2_alpha)), fill = "#00BA38", alpha = .3, width = .2, outliers = FALSE) +
+  geom_point(aes(x = 1, y = sqrt(tau2_alpha)), position = position_jitter(width = .15), shape = 21,
+             fill = "#00BA38", alpha = .5, size = 3) +
+  theme(axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        panel.background = element_rect(fill = "white"),
+        panel.grid.major.y = element_line(colour = "grey"),
+        axis.line = element_line(colour = "black"),
+        axis.title = element_text(size = 15)) +
+  labs(x = "Reliability", y = expression(tau[r["xx'"]]))
 
+ggsave(here("Graphics/rel_violin.png"),
+       plot = last_plot(),
+       height = 7, width = 5)
+
+MASC_names
+
+agg_L[[37]]$d_raw <- -agg_L[[37]]$d_raw 
+agg_L[[37]]$d_corr <- -agg_L[[37]]$d_corr 
 
 d_rma_L <- lapply(agg_L, FUN = function(x){
   
@@ -328,7 +350,8 @@ effect_index <- MASC_names %in% c("Albarracin_Priming_SAT", "Alter_Analytic_Proc
                                   # "Hart_Intention_Attribution",       
                                   "Husnu_Imagined_Contact", "Nosek_Explicit_Art",
                                   "Nosek_Explicit_Math", "PSACR001_anxiety_int", 
-                                  "PSACR002_neg_photo", "Shnabel_Willingness_Reconcile_Rev",
+                                  "PSACR001_behav_int", 
+                                  "PSACR002_neg_photo", #"Shnabel_Willingness_Reconcile_Rev",
                                   "Shnabel_Willingness_Reconcile_RPP", "Srull_Behaviour_Hostility",
                                   "Srull_Ronald_Hostility", "Tversky_Directionality_Similarity1"
                                   #, "Zhong_Desirability_Cleaning"
@@ -368,6 +391,7 @@ ggplot() +
             linewidth = 2, colour = "green")
 
 
+library(patchwork)
 
 plots <- lapply(1:length(d_rma_full_L), FUN = function(idx){
   
@@ -378,21 +402,30 @@ plots <- lapply(1:length(d_rma_full_L), FUN = function(idx){
   minmaxsequence_raw <- seq(from = min(y$rma_raw$yi), to = max(y$rma_raw$yi), length.out = 100)
   minmaxsequence_corr <- seq(from = min(y$rma_corr$yi), to = max(y$rma_corr$yi), length.out = 100)
   
+  weight_raw <- y$rma_raw$tau2 / (y$rma_raw$tau2 + y$rma_raw$vb[1])
+  shrunk_raw <- weight_raw * y$rma_raw$yi + (1-weight_raw) * y$rma_raw$b[1]
   
-  ggplot() +
-    geom_histogram(aes(x = y$rma_raw$yi), binwidth = (2*IQR(y$rma_raw$yi))/(length(y$rma_raw$yi)^(1/3)), fill = "darkgrey") +
+  p <- ggplot() +
+    scale_shape_identity() +
+    geom_point(aes(x = shrunk_raw, y = 0), colour = "darkgrey", shape = 108, size = 3) +
     # geom_histogram(aes(x = y$rma_corr$yi), binwidth = .1, fill = "black") +
     geom_line(aes(x = minmaxsequence_raw,
                   y = dnorm(minmaxsequence_raw, mean = y$rma_raw$b[1], sd = sqrt(y$rma_raw$tau2))),
-              linewidth = 1, colour = "red") +
+              linewidth = 1, colour = "darkgrey") +
     # geom_line(aes(x = minmaxsequence_corr,
     #               y = dnorm(minmaxsequence_corr, mean = y$rma_corr$b[1], sd = sqrt(y$rma_corr$tau2))),
     #           linewidth = 2, colour = "green") +
     theme(axis.title = element_blank(),
           axis.ticks.y = element_blank(),
-          axis.text.y = element_blank()) +
+          axis.text.y = element_blank(),
+          panel.background = element_rect(fill = "white")) +
     labs(subtitle = name)
   
+  if(y$rma_raw$tau2 == 0){
+    p + ylim(c(0,1))
+  }else{
+    p
+  }
   
   
 })
@@ -400,9 +433,12 @@ plots <- lapply(1:length(d_rma_full_L), FUN = function(idx){
 combined_plot <- Reduce('+', plots) + plot_layout(ncol = 4)
 combined_plot
 
+ggsave(filename = here("Graphics/densities_full.png"),
+       plot = last_plot(),
+       width = 11, height = 5)
 
 
-plots2 <- lapply(1:length(d_rma_full_L), FUN = function(idx){
+plots2 <- lapply((1:length(d_rma_full_L))[c(12,14,15,16)], FUN = function(idx){
   
   name <- MASC_names[effect_index][idx]
   
@@ -411,24 +447,40 @@ plots2 <- lapply(1:length(d_rma_full_L), FUN = function(idx){
   minmaxsequence_raw <- seq(from = min(y$rma_raw$yi), to = max(y$rma_raw$yi), length.out = 100)
   minmaxsequence_corr <- seq(from = min(y$rma_corr$yi), to = max(y$rma_corr$yi), length.out = 100)
   
+  weight_raw <- y$rma_raw$tau2 / (y$rma_raw$tau2 + y$rma_raw$vb[1])
+  shrunk_raw <- weight_raw * y$rma_raw$yi + (1-weight_raw) * y$rma_raw$b[1]
+  weight_corr <- y$rma_corr$tau2 / (y$rma_corr$tau2 + y$rma_corr$vb[1])
+  shrunk_corr <- weight_corr * y$rma_corr$yi + (1-weight_corr) * y$rma_corr$b[1]
   
-  ggplot() +
-    geom_histogram(aes(x = y$rma_raw$yi), binwidth = (2*IQR(y$rma_raw$yi))/(length(y$rma_raw$yi)^(1/3)), fill = "darkgrey") +
-    geom_histogram(aes(x = y$rma_corr$yi), binwidth = (2*IQR(y$rma_raw$yi))/(length(y$rma_raw$yi)^(1/3)), fill = "black") +
+  
+  p <- ggplot() +
+    scale_shape_identity() +
+    geom_point(aes(x = y$rma_raw$yi, y = 0), colour = "darkgrey", shape = 108, size = 3) +
+    geom_point(aes(x = y$rma_corr$yi, y = 0), colour = "black", shape = 108, size = 3) +
     geom_line(aes(x = minmaxsequence_raw,
                   y = dnorm(minmaxsequence_raw, mean = y$rma_raw$b[1], sd = sqrt(y$rma_raw$tau2))),
-              linewidth = 1, colour = "red") +
+              linewidth = 1, colour = "darkgrey") +
     geom_line(aes(x = minmaxsequence_corr,
                   y = dnorm(minmaxsequence_corr, mean = y$rma_corr$b[1], sd = sqrt(y$rma_corr$tau2))),
-              linewidth = 1, colour = "green") +
+              linewidth = 1, colour = "black") +
     theme(axis.title = element_blank(),
           axis.ticks.y = element_blank(),
-          axis.text.y = element_blank()) +
+          axis.text.y = element_blank(),
+          panel.background = element_rect(fill = "white")
+    ) +
     labs(subtitle = name)
   
-  
+  if(y$rma_raw$tau2 == 0){
+    p + ylim(c(0,1))
+  }else{
+    p
+  }
   
 })
 
-combined_plot2 <- Reduce('+', plots2) + plot_layout(ncol = 4)
+combined_plot2 <- Reduce('+', plots2) + plot_layout(ncol = 2)
 combined_plot2
+
+ggsave(filename = here("Graphics/densities_four.png"),
+       plot = last_plot(),
+       width = 11, height = 5)
