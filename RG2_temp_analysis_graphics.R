@@ -229,7 +229,26 @@ ggplot(B_alpha_rma_df) +
 
 ggsave(here("Graphics/rel_violin.png"),
        plot = last_plot(),
-       height = 7, width = 5)
+       height = 5.5, width = 5)
+
+ggplot(B_alpha_rma_df) +
+  geom_violin(aes(x = 1, y = mu_alpha), fill = "#00BA38", colour = "#00BA38", alpha = .3) +
+  geom_boxplot(aes(x = 1, y = mu_alpha), fill = "#00BA38", alpha = .3, width = .2, outliers = FALSE) +
+  geom_point(aes(x = 1, y = mu_alpha), position = position_jitter(width = .15), shape = 21,
+             fill = "#00BA38", alpha = .5, size = 3) +
+  theme(axis.ticks.x = element_blank(),
+        axis.text.x = element_blank(),
+        panel.background = element_rect(fill = "white"),
+        panel.grid.major.y = element_line(colour = "grey"),
+        axis.line = element_line(colour = "black"),
+        axis.title = element_text(size = 15)) +
+  labs(x = "Reliability", y = expression(mu[r["xx'"]]))
+
+
+ggsave(here("Graphics/rel_violin2.png"),
+       plot = last_plot(),
+       height = 5.5, width = 5)
+
 
 MASC_names
 
@@ -457,6 +476,8 @@ plots2 <- lapply((1:length(d_rma_full_L))[c(12,14,15,16)], FUN = function(idx){
     scale_shape_identity() +
     geom_point(aes(x = y$rma_raw$yi, y = 0), colour = "darkgrey", shape = 108, size = 3) +
     geom_point(aes(x = y$rma_corr$yi, y = 0), colour = "black", shape = 108, size = 3) +
+    geom_point(aes(x = y$rma_raw$b[1], y = 0), colour = "darkgrey", shape = 108, size = 8) +
+    geom_point(aes(x = y$rma_corr$b[1], y = 0), colour = "black", shape = 108, size = 8) +
     geom_line(aes(x = minmaxsequence_raw,
                   y = dnorm(minmaxsequence_raw, mean = y$rma_raw$b[1], sd = sqrt(y$rma_raw$tau2))),
               linewidth = 1, colour = "darkgrey") +
@@ -484,3 +505,119 @@ combined_plot2
 ggsave(filename = here("Graphics/densities_four.png"),
        plot = last_plot(),
        width = 11, height = 5)
+
+
+
+
+agg_L[[37]]
+
+
+
+forest_plot_rel <- function(rma.fit_raw, rma.fit_cor, rma.data, ci.lvl = .975){
+  rma.data %>% 
+    mutate(cil_raw = d_raw - (1-(1-ci.lvl)/2) * (SE_d_raw),
+           ciu_raw = d_raw + (1-(1-ci.lvl)/2) * (SE_d_raw),
+           cil_cor = d_cor - (1-(1-ci.lvl)/2) * (SE_d_cor),
+           ciu_cor = d_cor + (1-(1-ci.lvl)/2) * (SE_d_cor)) %>% 
+    arrange(desc(d_raw)) %>% 
+    ggplot() +
+    # point estimate of raw d
+    geom_point(aes(x = d_raw, y = 1:nrow(rma.data)), colour = "darkgrey", size = 2) +
+    # CI of point estimate of raw d
+    geom_segment(aes(x = cil_raw, y = 1:nrow(rma.data), xend = ciu_raw, yend = 1:nrow(rma.data)), colour = "darkgrey") +
+    geom_segment(aes(x = cil_raw, xend = cil_raw, y = (1:nrow(rma.data))+.3, yend = (1:nrow(rma.data))-.3), colour = "darkgrey") +
+    geom_segment(aes(x = ciu_raw, xend = ciu_raw, y =( 1:nrow(rma.data))+.3, yend = (1:nrow(rma.data))-.3), colour = "darkgrey") +
+    # point estiamte of corrected d
+    geom_point(aes(x = d_cor, y = 1:nrow(rma.data)), colour = "black", size = 2) +
+    # CI of point estimate of corrected d
+    geom_segment(aes(x = cil_cor, y = 1:nrow(rma.data), xend = ciu_cor, yend = 1:nrow(rma.data)), colour = "black") +
+    geom_segment(aes(x = cil_cor, xend = cil_cor, y = (1:nrow(rma.data))+.3, yend = (1:nrow(rma.data))-.3), colour = "black") +
+    geom_segment(aes(x = ciu_cor, xend = ciu_cor, y = (1:nrow(rma.data))+.3, yend = (1:nrow(rma.data))-.3), colour = "black") +
+    # solid black line separating RMA-estimates from point estimates
+    geom_abline(slope = 0, intercept = -1, colour = "black") +
+    # adding diamond showing rma-estimate of raw d
+    geom_polygon(data = data.frame(x = c(rma.fit_raw$ci.ub, rma.fit_raw$b[1], rma.fit_raw$ci.lb, rma.fit_raw$b[1]),
+                                   y = c(-3, -3-.7, -3, -3+.7)),
+                 aes(x = x, y = y),
+                 fill = "darkgrey", colour = "darkgrey") +
+    # adding diamond showing rma-estimate of corrected d
+    geom_polygon(data = data.frame(x = c(rma.fit_cor$ci.ub, rma.fit_cor$b[1], rma.fit_cor$ci.lb, rma.fit_cor$b[1]),
+                                   y = c(-3, -3-.7, -3, -3+.7)),
+                 aes(x = x, y = y),
+                 colour = "black", fill = "black") +
+    # defining theme of plot (transparent background etc.)
+    theme(legend.position = "bottom", 
+          panel.background = element_rect(fill = "transparent"), 
+          plot.background = element_rect(fill = "transparent", colour = "transparent"), 
+          panel.grid.major.y = element_line(colour = "transparent"),
+          panel.grid.major.x = element_line(colour = "grey"),
+          panel.grid.minor = element_line(colour = "transparent"),
+          axis.ticks = element_line(colour = "grey"),
+          strip.background = element_rect(fill = "transparent"),
+          axis.text = element_text(size = 12),
+          axis.title = element_text(size = 18)) +
+    scale_y_continuous(breaks = c(-3, 1:nrow(rma.data)), labels = c("RMA-estimate", rma.data$country)) +
+    labs(x = "Cohen's d",
+         y = "Country") 
+}
+
+
+example_names <- unique(read.csv(here("Data/Extracted (Project) Data/PSACR002_neg_photo.csv"))$source)
+
+example_codes <- substr(example_names, nchar(example_names) - 2, nchar(example_names)) 
+
+fp_rma_dat <- agg_L[[37]] %>% 
+  mutate(SE_d_raw = SE_d,
+         SE_d_cor = SE_d_corr,
+         d_cor = d_corr,
+         country = example_codes)
+fp_rma.fit_raw <- d_rma_full_L$PSACR002_neg_photo$rma_raw
+fp_rma.fit_corr <- d_rma_full_L$PSACR002_neg_photo$rma_corr
+
+
+forest_plot_rel(fp_rma.fit_raw, fp_rma.fit_corr, fp_rma_dat)
+
+ggsave(filename = here("Graphics/forest_plot.png"),
+       plot = last_plot(),
+       width = 10,
+       height = 6)
+
+
+
+
+
+minmaxsequence_raw <- seq(from = min(fp_rma.fit_raw$yi), to = max(fp_rma.fit_raw$yi), length.out = 100)
+minmaxsequence_corr <- seq(from = min(fp_rma.fit_corr$yi), to = max(fp_rma.fit_corr$yi), length.out = 100)
+
+weight_raw <- fp_rma.fit_raw$tau2 / (fp_rma.fit_raw$tau2 + fp_rma.fit_raw$vb[1])
+shrunk_raw <- weight_raw * fp_rma.fit_raw$yi + (1-weight_raw) * fp_rma.fit_raw$b[1]
+weight_corr <- fp_rma.fit_corr$tau2 / (fp_rma.fit_corr$tau2 + fp_rma.fit_corr$vb[1])
+shrunk_corr <- weight_corr * fp_rma.fit_corr$yi + (1-weight_corr) * fp_rma.fit_corr$b[1]
+
+
+p <- ggplot() +
+  scale_shape_identity() +
+  geom_point(aes(x = fp_rma.fit_raw$yi, y = 0), colour = "darkgrey", shape = 108, size = 3) +
+  geom_point(aes(x = fp_rma.fit_corr$yi, y = 0), colour = "black", shape = 108, size = 3) +
+  geom_point(aes(x = fp_rma.fit_raw$b[1], y = 0), colour = "darkgrey", shape = 108, size = 8) +
+  geom_point(aes(x = fp_rma.fit_corr$b[1], y = 0), colour = "black", shape = 108, size = 8) +
+  geom_line(aes(x = minmaxsequence_raw,
+                y = dnorm(minmaxsequence_raw, mean = fp_rma.fit_raw$b[1], sd = sqrt(fp_rma.fit_raw$tau2))),
+            linewidth = 1, colour = "darkgrey") +
+  geom_line(aes(x = minmaxsequence_corr,
+                y = dnorm(minmaxsequence_corr, mean = fp_rma.fit_corr$b[1], sd = sqrt(fp_rma.fit_corr$tau2))),
+            linewidth = 1, colour = "black") +
+  theme(axis.title = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_blank(),
+        panel.background = element_rect(fill = "white")
+  ) 
+
+
+p
+
+
+ggsave(filename = here("Graphics/density_plot.png"),
+       plot = last_plot(),
+       width = 10,
+       height = 5.5)
